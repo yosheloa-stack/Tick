@@ -50,32 +50,6 @@ export class LikeService {
   }
 
   /**
-   * Valida a quantidade customizada de likes (parametro `qtd` da API).
-   *
-   * @param {number|null} value
-   * @returns {number|undefined}
-   */
-  normalizeQuantity(value) {
-    if (value === null || value === undefined) {
-      return undefined;
-    }
-
-    const { customQuantity } = config.like;
-
-    if (!customQuantity.enabled) {
-      throw new TicketError('Este bot nao permite escolher a quantidade de likes.');
-    }
-
-    if (!Number.isInteger(value) || value < customQuantity.min || value > customQuantity.max) {
-      throw new TicketError(
-        `A quantidade deve ser um numero inteiro entre ${customQuantity.min} e ${customQuantity.max}.`,
-      );
-    }
-
-    return value;
-  }
-
-  /**
    * Consulta o intervalo de espera de um jogador.
    *
    * @param {string} playerId
@@ -96,10 +70,10 @@ export class LikeService {
   /**
    * Envia os likes e registra o uso do ID.
    *
-   * @param {{ playerId: string, region: string, quantity?: number, requestedBy: string, guildId: string|null, ignoreCooldown?: boolean }} params
+   * @param {{ playerId: string, region: string, requestedBy: string, guildId: string|null, ignoreCooldown?: boolean }} params
    * @returns {Promise<{ result: object, availableAt: Date }>}
    */
-  async send({ playerId, region, quantity, requestedBy, guildId, ignoreCooldown = false }) {
+  async send({ playerId, region, requestedBy, guildId, ignoreCooldown = false }) {
     if (this.#inFlight.has(playerId)) {
       throw new TicketError('Ja existe um envio em andamento para este ID. Aguarde a conclusao.');
     }
@@ -117,7 +91,7 @@ export class LikeService {
     this.#inFlight.add(playerId);
 
     try {
-      const result = await this.#client.send({ playerId, region, quantity });
+      const result = await this.#client.send({ playerId, region });
 
       const record = await this.#repository.register({
         playerId,

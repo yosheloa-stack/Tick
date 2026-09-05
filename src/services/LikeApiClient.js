@@ -57,10 +57,10 @@ export class LikeApiClient {
   /**
    * Monta a URL, os cabecalhos e o corpo da requisicao.
    *
-   * @param {{ playerId: string, region: string, quantity?: number }} params
+   * @param {{ playerId: string, region: string }} params
    * @returns {{ url: URL, init: RequestInit }}
    */
-  #buildRequest({ playerId, region, quantity }) {
+  #buildRequest({ playerId, region }) {
     const { api } = config.like;
     const url = new URL(api.path, api.baseUrl);
     const headers = { Accept: 'application/json', ...api.extraHeaders };
@@ -68,10 +68,6 @@ export class LikeApiClient {
 
     if (api.regionParam) {
       parameters[api.regionParam] = region;
-    }
-
-    if (api.quantityParam && quantity) {
-      parameters[api.quantityParam] = quantity;
     }
 
     if (api.authStyle !== 'none') {
@@ -170,11 +166,11 @@ export class LikeApiClient {
   /**
    * Envia os likes para o jogador informado.
    *
-   * @param {{ playerId: string, region: string, quantity?: number }} params
+   * @param {{ playerId: string, region: string }} params
    * @returns {Promise<object>}
    */
-  async send({ playerId, region, quantity }) {
-    const { url, init } = this.#buildRequest({ playerId, region, quantity });
+  async send({ playerId, region }) {
+    const { url, init } = this.#buildRequest({ playerId, region });
 
     this.#logger.debug(`Requisicao de like: ${init.method} ${url.origin}${url.pathname}`);
 

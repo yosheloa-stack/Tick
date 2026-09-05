@@ -33,16 +33,6 @@ export const like = {
     { label: 'CIS', value: 'cis' },
   ],
 
-  /**
-   * Quantidade customizada de likes por envio (parametro `qtd` da API).
-   * Sem informar, a API usa o padrao da casa e cobra apenas o que entrou de fato.
-   */
-  customQuantity: {
-    enabled: true,
-    min: 1,
-    max: 2000,
-  },
-
   api: {
     /** Endereco base da API. */
     baseUrl: 'https://autolikesystem.com.br',
@@ -56,8 +46,6 @@ export const like = {
     playerIdParam: 'uid',
     /** Nome do parametro que recebe a regiao. Use null para nao enviar. */
     regionParam: 'region',
-    /** Nome do parametro que recebe a quantidade customizada. Use null para nao enviar. */
-    quantityParam: 'qtd',
     /** Como a chave e enviada: 'query', 'header', 'bearer' ou 'none'. */
     authStyle: 'query',
     /** Nome do parametro (authStyle 'query') ou do cabecalho (authStyle 'header') que carrega a chave. */

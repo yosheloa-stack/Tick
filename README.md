@@ -150,12 +150,11 @@ contas quiser, desde que cada ID respeite o próprio prazo. Trocar a região nã
 envio — a chave de controle é o ID.
 
 ```
-/like id:<ID do jogador> [regiao:<região>] [quantidade:<1-2000>]
+/like id:<ID do jogador> [regiao:<região>]
 ```
 
-`quantidade` é opcional: sem ela, a API envia o máximo aceito pelo perfil naquele dia e cobra
-apenas o que entrou de fato. Informe um valor menor para economizar cota em um ID específico, ou
-maior (até 2000) quando o perfil aguentar.
+O bot não pede quantidade: cada envio pede à API o máximo que o perfil aceitar naquele dia (na
+prática, algo em torno de 220 likes por ID), e a cobrança é apenas pelo que realmente entrou.
 
 A requisição segue o contrato oficial da API:
 
@@ -226,13 +225,10 @@ Configuração completa em `config/like.js`:
 | `bypassRoleIds`             | Cargos isentos da espera. Lista vazia desativa a isenção.                     |
 | `defaultRegion`             | Região usada quando o membro não informa nenhuma. A API assume `br` se omitida.|
 | `regions`                   | Regiões oferecidas na opção do comando (máximo 25).                           |
-| `customQuantity.enabled`    | Habilita a opção `quantidade` no comando.                                     |
-| `customQuantity.min`/`max`  | Limites aceitos para a quantidade customizada.                                |
 | `api.baseUrl` / `path`      | Endereço do endpoint (`/v1/like`).                                            |
 | `api.method`                | `GET` ou `POST`.                                                              |
 | `api.playerIdParam`         | Nome do parâmetro do ID. Padrão: `uid`.                                       |
 | `api.regionParam`           | Nome do parâmetro da região. `null` não envia região.                        |
-| `api.quantityParam`         | Nome do parâmetro de quantidade. Padrão: `qtd`.                               |
 | `api.authStyle`             | Como a chave viaja: `query`, `header`, `bearer` ou `none`.                    |
 | `api.authName`              | Nome do parâmetro ou cabeçalho da chave. Padrão: `key`.                       |
 | `api.timeoutMs`             | Tempo máximo de espera pela resposta.                                         |
@@ -273,7 +269,7 @@ projeto, `npm install` é sempre o primeiro comando.
 | `/ticket renomear <nome>`      | Staff             | Renomeia o canal do ticket.                            |
 | `/ticket transcricao`          | Staff             | Gera a transcrição sem encerrar o atendimento.         |
 | `/ticket informacoes`          | Staff ou autor    | Exibe os dados registrados do ticket.                  |
-| `/like <id> [regiao] [quantidade]` | Todos          | Envia likes para um ID, respeitando o intervalo de 24h.|
+| `/like <id> [regiao]`          | Todos             | Envia likes para um ID, respeitando o intervalo de 24h.|
 
 Administradores do servidor são sempre tratados como staff.
 

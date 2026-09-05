@@ -117,18 +117,6 @@ function validate() {
     errors.push('like.defaultRegion precisa existir na lista like.regions.');
   }
 
-  const { customQuantity } = like;
-
-  if (customQuantity.enabled) {
-    if (!Number.isInteger(customQuantity.min) || customQuantity.min < 1) {
-      errors.push('like.customQuantity.min deve ser um numero inteiro maior ou igual a 1.');
-    }
-
-    if (!Number.isInteger(customQuantity.max) || customQuantity.max < customQuantity.min) {
-      errors.push('like.customQuantity.max deve ser um numero inteiro maior ou igual ao minimo.');
-    }
-  }
-
   if (errors.length > 0) {
     throw new Error(`Configuracao invalida:\n- ${errors.join('\n- ')}`);
   }
