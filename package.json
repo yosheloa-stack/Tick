@@ -1,0 +1,33 @@
+{
+  "name": "tick",
+  "version": "1.0.0",
+  "description": "Sistema de tickets para Discord com paineis interativos, transcricoes e controle de equipe.",
+  "type": "module",
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "deploy": "node scripts/deploy-commands.js",
+    "deploy:clear": "node scripts/deploy-commands.js --clear",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "discord",
+    "discord-bot",
+    "tickets",
+    "suporte"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "eslint": "^9.13.0",
+    "globals": "^15.11.0"
+  }
+}
