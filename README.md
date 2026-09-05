@@ -6,7 +6,7 @@ formulário, cria um canal privado por atendimento e arquiva a transcrição com
 
 ## Recursos
 
-- Painel de atendimento com menu de categorias configurável.
+- Painel de atendimento com menu de categorias configurável (Cargos, Atendimento humano e Parceria por padrão).
 - Formulário (modal) por categoria, com perguntas próprias.
 - Canal privado por ticket, com permissões aplicadas ao solicitante e aos cargos de staff.
 - Controle de atendimento: assumir, adicionar e remover participantes, renomear e encerrar.
@@ -15,6 +15,7 @@ formulário, cria um canal privado por atendimento e arquiva a transcrição com
 - Limite de tickets simultâneos por membro e proteção contra aberturas duplicadas.
 - Registro de abertura e fechamento em canal de logs, com duração e responsável.
 - Persistência local em arquivo JSON com escrita atômica.
+- Comando `/like` com intervalo de 24 horas por ID de jogador, sem limite de contas por membro.
 
 ## Requisitos
 
@@ -39,6 +40,7 @@ Preencha o arquivo `.env`:
 | `DISCORD_TOKEN` | Sim         | Token do bot (Developer Portal > Bot > Token).                            |
 | `CLIENT_ID`     | Sim         | ID da aplicação (Developer Portal > General Information > Application ID).|
 | `GUILD_ID`      | Não         | Servidor de registro dos comandos. Vazio registra globalmente.            |
+| `LIKE_API_KEY`  | Sim*        | Chave da API usada pelo `/like`. Dispensável apenas se `api.authStyle` for `none`. |
 | `LOG_LEVEL`     | Não         | `error`, `warn`, `info` (padrão) ou `debug`.                              |
 
 ## Configuração do servidor
@@ -139,6 +141,49 @@ Durante o desenvolvimento, `npm run dev` reinicia o processo a cada alteração 
 Com `GUILD_ID` preenchido, os comandos ficam disponíveis imediatamente no servidor informado.
 Sem `GUILD_ID`, o registro é global e a propagação pode levar até uma hora.
 
+## Comando /like
+
+O `/like` envia likes para um ID de jogador através de uma API externa e aplica um intervalo
+obrigatório de **24 horas por ID**. O limite é do ID, não do membro: a mesma pessoa pode atender
+quantas contas quiser, desde que cada ID respeite o próprio prazo. Trocar a região não libera um
+novo envio — a chave de controle é o ID.
+
+```
+/like id:<ID do jogador> [regiao:<região>]
+```
+
+Configuração em `config/like.js`:
+
+| Campo                    | Descrição                                                                     |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `cooldownHours`          | Horas de espera por ID. Padrão: 24.                                           |
+| `allowedChannelIds`      | Canais onde o comando funciona. Lista vazia libera todos.                     |
+| `bypassRoleIds`          | Cargos isentos da espera. Lista vazia desativa a isenção.                     |
+| `defaultRegion`          | Região usada quando o membro não informa nenhuma.                             |
+| `regions`                | Regiões oferecidas na opção do comando (máximo 25).                           |
+| `api.baseUrl` / `path`   | Endereço do endpoint de likes.                                                |
+| `api.method`             | `GET` ou `POST`.                                                              |
+| `api.playerIdParam`      | Nome do parâmetro que leva o ID. Padrão: `uid`.                               |
+| `api.regionParam`        | Nome do parâmetro da região. `null` não envia região.                         |
+| `api.authStyle`          | Como a chave viaja: `query`, `header`, `bearer` ou `none`.                    |
+| `api.authName`           | Nome do parâmetro ou cabeçalho da chave. Padrão: `key`.                       |
+| `api.timeoutMs`          | Tempo máximo de espera pela resposta.                                         |
+| `response.*`             | Caminhos lidos no JSON de resposta; o primeiro que existir é usado.           |
+
+Com os valores padrão, a requisição sai assim:
+
+```
+GET https://autolikesystem.com.br/api/like?uid=<ID>&region=<regiao>&key=<LIKE_API_KEY>
+```
+
+Se a sua API usar outros nomes de parâmetro ou outro formato de autenticação, ajuste o bloco `api`.
+Os campos da resposta (apelido, likes antes, likes depois, quantidade enviada) são lidos pelos
+caminhos declarados em `response`, que aceitam notação com ponto para valores aninhados, como
+`data.nickname`. Nenhum desses ajustes exige alteração de código.
+
+O registro dos envios fica em `data/likes.json`, e as entradas já vencidas são descartadas a cada
+novo envio.
+
 ## Problemas comuns
 
 | Mensagem                                                | Causa e solução                                                                                       |
@@ -148,6 +193,8 @@ Sem `GUILD_ID`, o registro é global e a propagação pode levar até uma hora.
 | `Variavel de ambiente ausente: DISCORD_TOKEN`           | Arquivo `.env` inexistente ou incompleto. Copie `.env.example` para `.env` e preencha os valores.        |
 | `Configuracao invalida`                                 | IDs ainda com o valor de exemplo em `config/tickets.js`. Substitua pelos IDs reais do seu servidor.     |
 | `Permissoes ausentes em <servidor>`                     | O cargo do bot não tem as permissões listadas acima. Ajuste as permissões e reinicie.                 |
+| `Used disallowed intents`                               | Ative **Message Content Intent** em Developer Portal > Bot > Privileged Gateway Intents.              |
+| `A chave da API de likes nao esta configurada`          | Defina `LIKE_API_KEY` no `.env` ou use `api.authStyle: 'none'` em `config/like.js`.                    |
 
 O diretório `node_modules/` não acompanha o download do repositório: após baixar ou clonar o
 projeto, `npm install` é sempre o primeiro comando.
@@ -165,6 +212,7 @@ projeto, `npm install` é sempre o primeiro comando.
 | `/ticket renomear <nome>`      | Staff             | Renomeia o canal do ticket.                            |
 | `/ticket transcricao`          | Staff             | Gera a transcrição sem encerrar o atendimento.         |
 | `/ticket informacoes`          | Staff ou autor    | Exibe os dados registrados do ticket.                  |
+| `/like <id> [regiao]`          | Todos             | Envia likes para um ID, respeitando o intervalo de 24h.|
 
 Administradores do servidor são sempre tratados como staff.
 
@@ -180,6 +228,7 @@ Administradores do servidor são sempre tratados como staff.
 
 ```
 config/tickets.js          configuração funcional (painel, categorias, limites)
+config/like.js             configuração do comando /like (API, intervalo, regiões)
 scripts/deploy-commands.js registro dos comandos de barra na API do Discord
 src/index.js               ponto de entrada e tratamento de sinais do processo
 src/config/                carregamento e validação de configuração e variáveis de ambiente
@@ -191,7 +240,7 @@ src/services/              regras de negócio e geração de transcrições
 src/store/                 persistência em arquivo JSON
 src/ui/                    construtores de embeds, menus, botões e formulários
 src/utils/                 utilidades de formatação, permissões e respostas
-data/                      base local de tickets (gerada em tempo de execução)
+data/                      bases locais de tickets e de likes (geradas em tempo de execução)
 ```
 
 Convenções de carregamento automático:
@@ -204,7 +253,7 @@ Convenções de carregamento automático:
 
 ## Persistência
 
-Os tickets são gravados em `data/tickets.json`. As escritas são enfileiradas e aplicadas de forma
+Os tickets são gravados em `data/tickets.json` e os envios do `/like` em `data/likes.json`. As escritas são enfileiradas e aplicadas de forma
 atômica (arquivo temporário seguido de renomeação), evitando perda de dados em encerramentos
 inesperados. O diretório `data/` é ignorado pelo controle de versão; inclua-o na rotina de backup.
 

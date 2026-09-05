@@ -1,3 +1,4 @@
+import { like } from '../../config/like.js';
 import { appearance, categories, panel, tickets } from '../../config/tickets.js';
 import { env } from './env.js';
 
@@ -88,6 +89,34 @@ function validate() {
     }
   }
 
+  const auth = ['query', 'header', 'bearer', 'none'];
+
+  if (!Number.isFinite(like.cooldownHours) || like.cooldownHours <= 0) {
+    errors.push('like.cooldownHours deve ser um numero maior que zero.');
+  }
+
+  try {
+    new URL(like.api.path, like.api.baseUrl);
+  } catch {
+    errors.push('like.api.baseUrl nao e uma URL valida.');
+  }
+
+  if (!['GET', 'POST'].includes(like.api.method)) {
+    errors.push('like.api.method deve ser GET ou POST.');
+  }
+
+  if (!auth.includes(like.api.authStyle)) {
+    errors.push(`like.api.authStyle deve ser um destes valores: ${auth.join(', ')}.`);
+  }
+
+  if (!Array.isArray(like.regions) || like.regions.length === 0) {
+    errors.push('like.regions deve conter ao menos uma regiao.');
+  } else if (like.regions.length > MAX_MENU_OPTIONS) {
+    errors.push(`like.regions suporta no maximo ${MAX_MENU_OPTIONS} itens.`);
+  } else if (!like.regions.some((region) => region.value === like.defaultRegion)) {
+    errors.push('like.defaultRegion precisa existir na lista like.regions.');
+  }
+
   if (errors.length > 0) {
     throw new Error(`Configuracao invalida:\n- ${errors.join('\n- ')}`);
   }
@@ -103,6 +132,7 @@ export const config = Object.freeze({
   appearance: Object.freeze(appearance),
   panel: Object.freeze(panel),
   tickets: Object.freeze(tickets),
+  like: Object.freeze(like),
   categories: Object.freeze([...categoryIndex.values()]),
   /**
    * Retorna uma categoria pelo id configurado.

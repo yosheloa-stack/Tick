@@ -2,17 +2,25 @@ import { MessageFlags } from 'discord.js';
 import { errorEmbed, successEmbed, warningEmbed } from './embeds.js';
 
 /**
- * Responde a interacao de forma efemera, cobrindo tambem os casos em que
- * a resposta ja foi adiada ou enviada.
+ * Responde a interacao cobrindo os tres estados possiveis: nova (resposta
+ * efemera), adiada (conclui o defer mantendo a visibilidade escolhida) e
+ * ja respondida (mensagem complementar efemera).
  *
  * @param {import('discord.js').RepliableInteraction} interaction
  * @param {import('discord.js').InteractionReplyOptions} payload
  * @returns {Promise<void>}
  */
 export async function respond(interaction, payload) {
+  // A visibilidade de uma interacao adiada ja foi definida no defer,
+  // entao a resposta e concluida com editReply em vez de followUp.
+  if (interaction.deferred && !interaction.replied) {
+    await interaction.editReply(payload);
+    return;
+  }
+
   const options = { ...payload, flags: MessageFlags.Ephemeral };
 
-  if (interaction.deferred || interaction.replied) {
+  if (interaction.replied) {
     await interaction.followUp(options);
     return;
   }

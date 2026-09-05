@@ -39,6 +39,7 @@ export const env = Object.freeze({
   token: required('DISCORD_TOKEN'),
   clientId: required('CLIENT_ID'),
   guildId: optional('GUILD_ID'),
+  likeApiKey: optional('LIKE_API_KEY'),
   logLevel: (() => {
     const level = optional('LOG_LEVEL', 'info').toLowerCase();
     return LOG_LEVELS.includes(level) ? level : 'info';

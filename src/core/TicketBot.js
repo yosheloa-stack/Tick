@@ -2,8 +2,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client, GatewayIntentBits, Options } from 'discord.js';
 import { config } from '../config/index.js';
+import { LikeApiClient } from '../services/LikeApiClient.js';
+import { LikeService } from '../services/LikeService.js';
 import { TicketService } from '../services/TicketService.js';
 import { TranscriptService } from '../services/TranscriptService.js';
+import { LikeRepository } from '../store/LikeRepository.js';
 import { TicketRepository } from '../store/TicketRepository.js';
 import { CommandRegistry } from './CommandRegistry.js';
 import { ComponentRegistry } from './ComponentRegistry.js';
@@ -21,10 +24,12 @@ export class TicketBot extends Client {
   commands;
   /** @type {ComponentRegistry} */
   components;
-  /** @type {{ tickets: TicketService, transcripts: TranscriptService }} */
+  /** @type {{ tickets: TicketService, transcripts: TranscriptService, likes: LikeService }} */
   services;
   /** @type {TicketRepository} */
   repository;
+  /** @type {LikeRepository} */
+  likeRepository;
   /** @type {object} */
   logger;
 
@@ -46,6 +51,7 @@ export class TicketBot extends Client {
     this.commands = new CommandRegistry(this.logger.child('commands'));
     this.components = new ComponentRegistry(this.logger.child('components'));
     this.repository = new TicketRepository(join(PROJECT_ROOT, 'data', 'tickets.json'));
+    this.likeRepository = new LikeRepository(join(PROJECT_ROOT, 'data', 'likes.json'));
 
     const transcripts = new TranscriptService();
 
@@ -56,6 +62,11 @@ export class TicketBot extends Client {
         repository: this.repository,
         transcripts,
         logger: this.logger.child('tickets'),
+      }),
+      likes: new LikeService({
+        repository: this.likeRepository,
+        client: new LikeApiClient(this.logger.child('like')),
+        logger: this.logger.child('like'),
       }),
     };
   }
@@ -71,6 +82,7 @@ export class TicketBot extends Client {
       config,
       services: this.services,
       repository: this.repository,
+      likeRepository: this.likeRepository,
       logger: this.logger,
     };
   }
@@ -82,6 +94,7 @@ export class TicketBot extends Client {
    */
   async start() {
     await this.repository.init();
+    await this.likeRepository.init();
     await this.commands.loadFrom(join(SOURCE_ROOT, 'commands'));
     await this.components.loadFrom(join(SOURCE_ROOT, 'components'));
     await this.#registerEvents(join(SOURCE_ROOT, 'events'));

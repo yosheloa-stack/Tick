@@ -79,48 +79,13 @@ export const tickets = {
  */
 export const categories = [
   {
-    id: 'denuncias',
-    label: 'Denuncias',
-    description: 'Reportar membros',
-    emoji: null,
-    staffRoleIds: [],
-    openingMessage:
-      'Descreva a ocorrencia com o maximo de detalhes e anexe as provas disponiveis.',
-    questions: [
-      {
-        id: 'denunciado',
-        label: 'Quem voce esta denunciando?',
-        placeholder: 'Nome de usuario ou ID',
-        style: 'short',
-        required: true,
-        maxLength: 100,
-      },
-      {
-        id: 'motivo',
-        label: 'Descreva a ocorrencia',
-        placeholder: 'O que aconteceu, quando e onde',
-        style: 'paragraph',
-        required: true,
-        maxLength: 1000,
-      },
-      {
-        id: 'provas',
-        label: 'Provas disponiveis',
-        placeholder: 'Links de prints, videos ou IDs de mensagem',
-        style: 'paragraph',
-        required: false,
-        maxLength: 500,
-      },
-    ],
-  },
-  {
     id: 'cargos',
-    label: 'Comprar cargos',
-    description: 'Adquirir cargos pagos',
+    label: 'Cargos',
+    description: 'Adquirir cargos e vantagens',
     emoji: null,
     staffRoleIds: [],
     openingMessage:
-      'Informe o cargo desejado e a forma de pagamento. Um atendente concluira a compra.',
+      'Informe o cargo desejado e a forma de pagamento. Um atendente concluira a compra neste canal.',
     questions: [
       {
         id: 'cargo',
@@ -141,7 +106,7 @@ export const categories = [
       {
         id: 'observacoes',
         label: 'Observacoes',
-        placeholder: 'Informacoes adicionais',
+        placeholder: 'Informacoes adicionais sobre a compra',
         style: 'paragraph',
         required: false,
         maxLength: 500,
@@ -149,9 +114,44 @@ export const categories = [
     ],
   },
   {
+    id: 'atendimento',
+    label: 'Atendimento humano',
+    description: 'Falar diretamente com a equipe',
+    emoji: null,
+    staffRoleIds: [],
+    openingMessage:
+      'Descreva a sua solicitacao com o maximo de detalhes e anexe prints, se houver. A equipe respondera neste canal.',
+    questions: [
+      {
+        id: 'assunto',
+        label: 'Assunto',
+        placeholder: 'Resumo em uma linha',
+        style: 'short',
+        required: true,
+        maxLength: 100,
+      },
+      {
+        id: 'descricao',
+        label: 'Descreva a sua duvida ou problema',
+        placeholder: 'O que aconteceu, quando e o que voce ja tentou',
+        style: 'paragraph',
+        required: true,
+        maxLength: 1000,
+      },
+      {
+        id: 'referencia',
+        label: 'ID da transacao ou numero do pedido',
+        placeholder: 'Preencha apenas se for sobre uma compra ou venda',
+        style: 'short',
+        required: false,
+        maxLength: 100,
+      },
+    ],
+  },
+  {
     id: 'parceria',
     label: 'Parceria',
-    description: 'Solicitacoes de parceria',
+    description: 'Propostas de parceria',
     emoji: null,
     staffRoleIds: [],
     openingMessage:

@@ -33,5 +33,11 @@ export default {
     );
 
     context.logger.info(`${openTickets} ticket(s) em aberto.`);
+
+    if (context.config.like.api.authStyle !== 'none' && !context.config.env.likeApiKey) {
+      context.logger.warn(
+        'LIKE_API_KEY nao definida: o comando /like respondera com erro ate a chave ser configurada.',
+      );
+    }
   },
 };
