@@ -139,6 +139,19 @@ Durante o desenvolvimento, `npm run dev` reinicia o processo a cada alteração 
 Com `GUILD_ID` preenchido, os comandos ficam disponíveis imediatamente no servidor informado.
 Sem `GUILD_ID`, o registro é global e a propagação pode levar até uma hora.
 
+## Problemas comuns
+
+| Mensagem                                                | Causa e solução                                                                                       |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `ERR_MODULE_NOT_FOUND: Cannot find package 'discord.js'` | Dependências não instaladas. Execute `npm install` na raiz do projeto (a pasta que contém `package.json`). |
+| `Cannot find module ... src\index.js`                   | Comando executado de dentro de `src`. Volte para a raiz e use `npm start`.                              |
+| `Variavel de ambiente ausente: DISCORD_TOKEN`           | Arquivo `.env` inexistente ou incompleto. Copie `.env.example` para `.env` e preencha os valores.        |
+| `Configuracao invalida`                                 | IDs ainda com o valor de exemplo em `config/tickets.js`. Substitua pelos IDs reais do seu servidor.     |
+| `Permissoes ausentes em <servidor>`                     | O cargo do bot não tem as permissões listadas acima. Ajuste as permissões e reinicie.                 |
+
+O diretório `node_modules/` não acompanha o download do repositório: após baixar ou clonar o
+projeto, `npm install` é sempre o primeiro comando.
+
 ## Comandos
 
 | Comando                        | Acesso            | Descrição                                              |
