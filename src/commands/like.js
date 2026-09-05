@@ -15,26 +15,39 @@ function canBypassCooldown(member) {
   return roles.length > 0 && Boolean(member) && roles.some((roleId) => member.roles.cache.has(roleId));
 }
 
+const data = new SlashCommandBuilder()
+  .setName('like')
+  .setDescription('Envia likes para um ID de jogador.')
+  .setContexts(InteractionContextType.Guild)
+  .addStringOption((option) =>
+    option
+      .setName('id')
+      .setDescription('ID numerico do jogador.')
+      .setMinLength(6)
+      .setMaxLength(15)
+      .setRequired(true),
+  )
+  .addStringOption((option) =>
+    option
+      .setName('regiao')
+      .setDescription('Regiao da conta. Padrao: a configurada no bot.')
+      .addChoices(...config.like.regions.map(({ label, value }) => ({ name: label, value })))
+      .setRequired(false),
+  );
+
+if (config.like.customQuantity.enabled) {
+  data.addIntegerOption((option) =>
+    option
+      .setName('quantidade')
+      .setDescription('Quantidade customizada de likes. Padrao: o maximo aceito pelo perfil.')
+      .setMinValue(config.like.customQuantity.min)
+      .setMaxValue(config.like.customQuantity.max)
+      .setRequired(false),
+  );
+}
+
 export default {
-  data: new SlashCommandBuilder()
-    .setName('like')
-    .setDescription('Envia likes para um ID de jogador.')
-    .setContexts(InteractionContextType.Guild)
-    .addStringOption((option) =>
-      option
-        .setName('id')
-        .setDescription('ID numerico do jogador.')
-        .setMinLength(6)
-        .setMaxLength(15)
-        .setRequired(true),
-    )
-    .addStringOption((option) =>
-      option
-        .setName('regiao')
-        .setDescription('Regiao da conta. Padrao: a configurada no bot.')
-        .addChoices(...config.like.regions.map(({ label, value }) => ({ name: label, value })))
-        .setRequired(false),
-    ),
+  data,
   /**
    * @param {import('discord.js').ChatInputCommandInteraction} interaction
    * @param {object} context
@@ -52,6 +65,7 @@ export default {
     const service = context.services.likes;
     const playerId = service.normalizePlayerId(interaction.options.getString('id', true));
     const region = interaction.options.getString('regiao') ?? config.like.defaultRegion;
+    const quantity = service.normalizeQuantity(interaction.options.getInteger('quantidade'));
     const ignoreCooldown = canBypassCooldown(interaction.member);
 
     const status = service.status(playerId);
@@ -76,6 +90,7 @@ export default {
     const { result, availableAt } = await service.send({
       playerId,
       region,
+      quantity,
       requestedBy: interaction.user.id,
       guildId: interaction.guildId,
       ignoreCooldown,

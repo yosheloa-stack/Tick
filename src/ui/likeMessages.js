@@ -48,16 +48,29 @@ export function buildLikeResultEmbed({ result, playerId, region, requestedBy, av
     embed.addFields({ name: 'Jogador', value: String(result.nickname), inline: true });
   }
 
-  if (result.level !== undefined) {
-    embed.addFields({ name: 'Nivel', value: amount(result.level), inline: true });
-  }
-
   embed.addFields(
     { name: 'Likes antes', value: amount(result.likesBefore), inline: true },
     { name: 'Likes depois', value: amount(result.likesAfter), inline: true },
     { name: 'Enviados agora', value: amount(result.likesGiven), inline: true },
-    { name: 'Proximo envio para este ID', value: time(availableAt, 'R') },
   );
+
+  if (result.quota?.remaining !== undefined) {
+    const quota = result.quota.limit !== undefined
+      ? `${amount(result.quota.remaining)} de ${amount(result.quota.limit)}`
+      : amount(result.quota.remaining);
+
+    embed.addFields({ name: 'Cota restante da chave', value: quota, inline: true });
+  }
+
+  if (result.source) {
+    embed.addFields({ name: 'Fonte', value: String(result.source), inline: true });
+  }
+
+  embed.addFields({ name: 'Proximo envio para este ID', value: time(availableAt, 'R') });
+
+  if (result.receiptUrl) {
+    embed.addFields({ name: 'Comprovante', value: `[Abrir comprovante](${result.receiptUrl})` });
+  }
 
   return embed;
 }

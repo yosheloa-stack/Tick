@@ -143,46 +143,107 @@ Sem `GUILD_ID`, o registro é global e a propagação pode levar até uma hora.
 
 ## Comando /like
 
-O `/like` envia likes para um ID de jogador através de uma API externa e aplica um intervalo
-obrigatório de **24 horas por ID**. O limite é do ID, não do membro: a mesma pessoa pode atender
-quantas contas quiser, desde que cada ID respeite o próprio prazo. Trocar a região não libera um
-novo envio — a chave de controle é o ID.
+O `/like` envia likes para um ID de jogador através da API do [Auto System](https://autolikesystem.com.br)
+e aplica um intervalo obrigatório de **24 horas por ID** (além do próprio intervalo diário que a
+API já aplica do lado dela). O limite é do ID, não do membro: a mesma pessoa pode atender quantas
+contas quiser, desde que cada ID respeite o próprio prazo. Trocar a região não libera um novo
+envio — a chave de controle é o ID.
 
 ```
-/like id:<ID do jogador> [regiao:<região>]
+/like id:<ID do jogador> [regiao:<região>] [quantidade:<1-2000>]
 ```
 
-Configuração em `config/like.js`:
+`quantidade` é opcional: sem ela, a API envia o máximo aceito pelo perfil naquele dia e cobra
+apenas o que entrou de fato. Informe um valor menor para economizar cota em um ID específico, ou
+maior (até 2000) quando o perfil aguentar.
 
-| Campo                    | Descrição                                                                     |
-| ------------------------ | ----------------------------------------------------------------------------- |
-| `cooldownHours`          | Horas de espera por ID. Padrão: 24.                                           |
-| `allowedChannelIds`      | Canais onde o comando funciona. Lista vazia libera todos.                     |
-| `bypassRoleIds`          | Cargos isentos da espera. Lista vazia desativa a isenção.                     |
-| `defaultRegion`          | Região usada quando o membro não informa nenhuma.                             |
-| `regions`                | Regiões oferecidas na opção do comando (máximo 25).                           |
-| `api.baseUrl` / `path`   | Endereço do endpoint de likes.                                                |
-| `api.method`             | `GET` ou `POST`.                                                              |
-| `api.playerIdParam`      | Nome do parâmetro que leva o ID. Padrão: `uid`.                               |
-| `api.regionParam`        | Nome do parâmetro da região. `null` não envia região.                         |
-| `api.authStyle`          | Como a chave viaja: `query`, `header`, `bearer` ou `none`.                    |
-| `api.authName`           | Nome do parâmetro ou cabeçalho da chave. Padrão: `key`.                       |
-| `api.timeoutMs`          | Tempo máximo de espera pela resposta.                                         |
-| `response.*`             | Caminhos lidos no JSON de resposta; o primeiro que existir é usado.           |
-
-Com os valores padrão, a requisição sai assim:
+A requisição segue o contrato oficial da API:
 
 ```
-GET https://autolikesystem.com.br/api/like?uid=<ID>&region=<regiao>&key=<LIKE_API_KEY>
+GET https://autolikesystem.com.br/v1/like?uid=<ID>&region=<regiao>&key=<LIKE_API_KEY>
 ```
 
-Se a sua API usar outros nomes de parâmetro ou outro formato de autenticação, ajuste o bloco `api`.
-Os campos da resposta (apelido, likes antes, likes depois, quantidade enviada) são lidos pelos
-caminhos declarados em `response`, que aceitam notação com ponto para valores aninhados, como
-`data.nickname`. Nenhum desses ajustes exige alteração de código.
+A chave pode viajar também pelo cabeçalho `X-Api-Key` — troque `api.authStyle` para `header` e
+`api.authName` para `X-Api-Key` em `config/like.js` caso prefira esse formato.
+
+Resposta de sucesso (HTTP 200):
+
+```json
+{
+  "sucesso": true,
+  "uid": "16046839641",
+  "nick": "Jadson8smt45",
+  "likes_antes": 2,
+  "likes_depois": 126,
+  "likes_enviados": 124,
+  "fonte": "motor próprio",
+  "cota": { "limite": 500, "usadas": 1, "restam": 499 },
+  "comprovante": "/comprovante/a3f9c1...",
+  "comprovante_imagem": "/comprovante/a3f9c1....svg",
+  "imagem_expira_em": "2026-09-02T15:12:00.000Z"
+}
+```
+
+O bot le `sucesso`, `nick`, `likes_antes`, `likes_depois`, `likes_enviados`, `fonte`, `cota` e
+`comprovante` (resolvido para URL absoluta) e monta o embed de resultado com esses dados. A imagem
+do comprovante (`comprovante_imagem`) expira em 5 minutos e não é usada pelo bot; o link de
+`comprovante` é permanente e é o que aparece no embed.
+
+Quando o ID ainda está no próprio intervalo da API, a resposta também vem com HTTP 200, mas
+`sucesso: false`:
+
+```json
+{
+  "sucesso": false,
+  "erro": "esse ID já recebeu likes hoje — libera de novo em …",
+  "libera_em": "2026-09-01T15:20:00.000Z",
+  "cota": { "usadas": 1, "restam": 499 }
+}
+```
+
+Esse caso é tratado como erro de negócio: o bot responde com a mensagem da API e o horário de
+liberação, sem contar como falha técnica.
+
+Erros HTTP documentados pela API:
+
+| HTTP  | Causa                        | Mensagem exibida                                             |
+| ----- | ----------------------------- | -------------------------------------------------------------- |
+| `400` | UID ausente ou inválido       | Confira o ID.                                                  |
+| `401` | Chave inválida                | Confira se ela foi copiada por completo.                       |
+| `402` | Saldo insuficiente             | Compre mais likes na conta da API.                              |
+| `403` | Chave revogada ou vencida      | Fale com o suporte da API.                                      |
+| `404` | Jogador não encontrado         | Confira o UID e a região.                                       |
+| `429` | Cota da chave esgotada         | Solicite um aumento de limite ao suporte da API.                |
+
+As mensagens ficam em `like.httpErrorMessages`, em `config/like.js`.
+
+Configuração completa em `config/like.js`:
+
+| Campo                       | Descrição                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| `cooldownHours`             | Horas de espera por ID aplicadas pelo bot. Padrão: 24.                         |
+| `allowedChannelIds`         | Canais onde o comando funciona. Lista vazia libera todos.                     |
+| `bypassRoleIds`             | Cargos isentos da espera. Lista vazia desativa a isenção.                     |
+| `defaultRegion`             | Região usada quando o membro não informa nenhuma. A API assume `br` se omitida.|
+| `regions`                   | Regiões oferecidas na opção do comando (máximo 25).                           |
+| `customQuantity.enabled`    | Habilita a opção `quantidade` no comando.                                     |
+| `customQuantity.min`/`max`  | Limites aceitos para a quantidade customizada.                                |
+| `api.baseUrl` / `path`      | Endereço do endpoint (`/v1/like`).                                            |
+| `api.method`                | `GET` ou `POST`.                                                              |
+| `api.playerIdParam`         | Nome do parâmetro do ID. Padrão: `uid`.                                       |
+| `api.regionParam`           | Nome do parâmetro da região. `null` não envia região.                        |
+| `api.quantityParam`         | Nome do parâmetro de quantidade. Padrão: `qtd`.                               |
+| `api.authStyle`             | Como a chave viaja: `query`, `header`, `bearer` ou `none`.                    |
+| `api.authName`              | Nome do parâmetro ou cabeçalho da chave. Padrão: `key`.                       |
+| `api.timeoutMs`             | Tempo máximo de espera pela resposta.                                         |
+| `response.*`                | Caminhos lidos no JSON de resposta; o primeiro que existir é usado.           |
+| `httpErrorMessages`         | Mensagem exibida para cada código HTTP de erro.                              |
+
+Se a API mudar nomes de campo, os caminhos em `response` aceitam notação com ponto para valores
+aninhados (ex.: `cota.restam`) e nenhum ajuste exige alteração de código.
 
 O registro dos envios fica em `data/likes.json`, e as entradas já vencidas são descartadas a cada
-novo envio.
+novo envio. O Auto System não é afiliado à Garena ou ao Free Fire.
 
 ## Problemas comuns
 
@@ -212,7 +273,7 @@ projeto, `npm install` é sempre o primeiro comando.
 | `/ticket renomear <nome>`      | Staff             | Renomeia o canal do ticket.                            |
 | `/ticket transcricao`          | Staff             | Gera a transcrição sem encerrar o atendimento.         |
 | `/ticket informacoes`          | Staff ou autor    | Exibe os dados registrados do ticket.                  |
-| `/like <id> [regiao]`          | Todos             | Envia likes para um ID, respeitando o intervalo de 24h.|
+| `/like <id> [regiao] [quantidade]` | Todos          | Envia likes para um ID, respeitando o intervalo de 24h.|
 
 Administradores do servidor são sempre tratados como staff.
 

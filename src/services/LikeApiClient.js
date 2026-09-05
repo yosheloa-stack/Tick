@@ -1,4 +1,5 @@
 import { config } from '../config/index.js';
+import { formatDateTime } from '../utils/format.js';
 import { TicketError } from '../utils/TicketError.js';
 
 /**
@@ -40,8 +41,8 @@ function firstDefined(source, paths) {
 /**
  * Cliente HTTP da API de likes.
  *
- * O formato da requisicao e a leitura da resposta sao declarados em
- * `config/like.js`, permitindo adaptar a integracao sem alterar codigo.
+ * O formato da requisicao e a leitura da resposta seguem o contrato
+ * declarado em `config/like.js`, sem valores fixos no codigo.
  */
 export class LikeApiClient {
   #logger;
@@ -56,10 +57,10 @@ export class LikeApiClient {
   /**
    * Monta a URL, os cabecalhos e o corpo da requisicao.
    *
-   * @param {{ playerId: string, region: string }} params
+   * @param {{ playerId: string, region: string, quantity?: number }} params
    * @returns {{ url: URL, init: RequestInit }}
    */
-  #buildRequest({ playerId, region }) {
+  #buildRequest({ playerId, region, quantity }) {
     const { api } = config.like;
     const url = new URL(api.path, api.baseUrl);
     const headers = { Accept: 'application/json', ...api.extraHeaders };
@@ -67,6 +68,10 @@ export class LikeApiClient {
 
     if (api.regionParam) {
       parameters[api.regionParam] = region;
+    }
+
+    if (api.quantityParam && quantity) {
+      parameters[api.quantityParam] = quantity;
     }
 
     if (api.authStyle !== 'none') {
@@ -102,50 +107,74 @@ export class LikeApiClient {
   }
 
   /**
-   * Interpreta a resposta da API conforme os caminhos configurados.
+   * Resolve um link retornado pela API (absoluto ou relativo) contra o endereco base.
+   *
+   * @param {unknown} value
+   * @returns {string|undefined}
+   */
+  #resolveLink(value) {
+    if (!value) {
+      return undefined;
+    }
+
+    try {
+      return new URL(String(value), config.like.api.baseUrl).toString();
+    } catch {
+      return String(value);
+    }
+  }
+
+  /**
+   * Mensagem amigavel para um HTTP de erro sem mensagem propria no corpo.
+   *
+   * @param {number} status
+   * @returns {string}
+   */
+  #httpErrorMessage(status) {
+    return config.like.httpErrorMessages[status] ?? `A API de likes retornou um erro (HTTP ${status}).`;
+  }
+
+  /**
+   * Interpreta o corpo da resposta conforme os caminhos configurados.
    *
    * @param {object} payload
-   * @param {boolean} httpOk
-   * @returns {{ success: boolean, nickname?: string, level?: unknown, likesBefore?: unknown, likesAfter?: unknown, likesGiven?: unknown, message?: string }}
+   * @returns {object}
    */
-  #parse(payload, httpOk) {
+  #parse(payload) {
     const { response } = config.like;
     const flag = firstDefined(payload, response.successPaths);
+    const success = response.successValues.some(
+      (value) => String(value).toLowerCase() === String(flag).toLowerCase(),
+    );
 
-    const success =
-      flag === undefined
-        ? httpOk
-        : response.successValues.some(
-            (value) => String(value).toLowerCase() === String(flag).toLowerCase(),
-          );
-
-    const likesBefore = firstDefined(payload, response.likesBeforePaths);
-    const likesAfter = firstDefined(payload, response.likesAfterPaths);
-    const likesGiven = firstDefined(payload, response.likesGivenPaths);
+    const availableAtRaw = firstDefined(payload, response.availableAtPaths);
 
     return {
       success,
-      nickname: firstDefined(payload, response.nicknamePaths),
-      level: firstDefined(payload, response.levelPaths),
-      likesBefore,
-      likesAfter,
-      likesGiven:
-        likesGiven ??
-        (Number.isFinite(Number(likesAfter)) && Number.isFinite(Number(likesBefore))
-          ? Number(likesAfter) - Number(likesBefore)
-          : undefined),
       message: firstDefined(payload, response.messagePaths),
+      availableAt: availableAtRaw ? new Date(String(availableAtRaw)) : undefined,
+      nickname: firstDefined(payload, response.nicknamePaths),
+      source: firstDefined(payload, response.sourcePaths),
+      likesBefore: firstDefined(payload, response.likesBeforePaths),
+      likesAfter: firstDefined(payload, response.likesAfterPaths),
+      likesGiven: firstDefined(payload, response.likesGivenPaths),
+      quota: {
+        limit: firstDefined(payload, response.quotaLimitPaths),
+        used: firstDefined(payload, response.quotaUsedPaths),
+        remaining: firstDefined(payload, response.quotaRemainingPaths),
+      },
+      receiptUrl: this.#resolveLink(firstDefined(payload, response.receiptUrlPaths)),
     };
   }
 
   /**
    * Envia os likes para o jogador informado.
    *
-   * @param {{ playerId: string, region: string }} params
+   * @param {{ playerId: string, region: string, quantity?: number }} params
    * @returns {Promise<object>}
    */
-  async send({ playerId, region }) {
-    const { url, init } = this.#buildRequest({ playerId, region });
+  async send({ playerId, region, quantity }) {
+    const { url, init } = this.#buildRequest({ playerId, region, quantity });
 
     this.#logger.debug(`Requisicao de like: ${init.method} ${url.origin}${url.pathname}`);
 
@@ -174,18 +203,28 @@ export class LikeApiClient {
       throw new TicketError('A API de likes retornou uma resposta em formato inesperado.');
     }
 
-    const result = this.#parse(payload, httpResponse.ok);
+    if (!httpResponse.ok) {
+      const message = firstDefined(payload, config.like.response.messagePaths);
 
-    if (!httpResponse.ok || !result.success) {
-      this.#logger.warn(
-        `API de likes recusou o envio (HTTP ${httpResponse.status}): ${result.message ?? text.slice(0, 200)}`,
+      this.#logger.warn(`API de likes recusou o envio (HTTP ${httpResponse.status}): ${message ?? text.slice(0, 200)}`);
+
+      throw new TicketError(message ?? this.#httpErrorMessage(httpResponse.status));
+    }
+
+    const result = this.#parse(payload);
+
+    if (!result.success) {
+      // HTTP 200 com sucesso:false e o formato usado pela API quando o ID
+      // ainda esta no tempo de espera do proprio provedor.
+      const suffix = result.availableAt
+        ? ` Libera novamente em ${formatDateTime(result.availableAt)}.`
+        : '';
+
+      this.#logger.info(
+        `API de likes recusou o envio para ${playerId}: ${result.message ?? 'motivo nao informado'}`,
       );
 
-      throw new TicketError(
-        result.message
-          ? `A API de likes recusou o envio: ${result.message}`
-          : `A API de likes recusou o envio (HTTP ${httpResponse.status}).`,
-      );
+      throw new TicketError(`${result.message ?? 'A API de likes recusou o envio.'}${suffix}`);
     }
 
     return result;
