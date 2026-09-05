@@ -3,6 +3,8 @@
  *
  * Este e o unico arquivo que precisa ser editado no dia a dia.
  * Credenciais ficam no arquivo `.env`.
+ *
+ * Projeto desenvolvido por YoshGGx.
  */
 
 export const appearance = {
@@ -16,6 +18,8 @@ export const appearance = {
   successColor: 0x3fa96a,
   /** Texto exibido no rodape dos embeds. */
   footerText: 'Central de Atendimento',
+  /** Credito do desenvolvedor, anexado ao rodape. Use null para ocultar. */
+  developerCredit: 'Desenvolvido por YoshGGx',
 };
 
 export const panel = {

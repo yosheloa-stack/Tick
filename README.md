@@ -63,7 +63,7 @@ Copie os IDs (modo desenvolvedor ativado no Discord) e edite `config/tickets.js`
 | `tickets.sendTranscriptToAuthor` | Envia a transcrição ao solicitante por mensagem direta.              |
 | `tickets.transcriptMessageLimit` | Máximo de mensagens incluídas na transcrição.                        |
 | `panel`                          | Título, descrição, imagens e texto do menu do painel.                |
-| `appearance`                     | Cores dos embeds e texto do rodapé.                                  |
+| `appearance`                     | Cores dos embeds, texto do rodapé e crédito do desenvolvedor.        |
 | `categories`                     | Categorias do menu e perguntas de cada formulário.                   |
 
 Cada categoria aceita:
@@ -88,6 +88,23 @@ Cada categoria aceita:
   ],
 }
 ```
+
+### Imagem do painel
+
+O banner exibido abaixo do texto do painel e a miniatura do canto superior são definidos em
+`config/tickets.js`, no bloco `panel`:
+
+```js
+export const panel = {
+  imageUrl: 'https://cdn.discordapp.com/attachments/000/000/banner.png', // banner (null desativa)
+  thumbnailUrl: null,                                                    // miniatura (null desativa)
+};
+```
+
+O Discord aceita apenas URLs públicas. Para obter a de uma imagem própria, envie o arquivo em um
+canal do servidor, clique com o botão direito na imagem, escolha **Copiar link** e cole o endereço
+no campo correspondente. Depois de alterar, republique o painel com `/painel enviar` ou atualize o
+existente com `/painel atualizar <id-da-mensagem>`.
 
 A configuração é validada na inicialização: IDs inválidos, categorias duplicadas ou formulários
 acima do limite interrompem o processo com a lista de erros encontrados.
@@ -183,6 +200,13 @@ inesperados. O diretório `data/` é ignorado pelo controle de versão; inclua-o
 ```bash
 npm run lint
 ```
+
+## Créditos
+
+Projeto desenvolvido por **YoshGGx**.
+
+O crédito exibido no rodapé dos embeds e das transcrições é controlado por
+`appearance.developerCredit`, em `config/tickets.js`.
 
 ## Licença
 

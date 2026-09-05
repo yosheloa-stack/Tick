@@ -99,6 +99,9 @@ export class TranscriptService {
     const messages = await this.#collectMessages(channel);
     const rendered = messages.map((message) => this.#renderMessage(message)).join('');
     const reference = ticketNumber(ticket.number);
+    const credit = config.appearance.developerCredit
+      ? ` ${escapeHtml(config.appearance.developerCredit)}.`
+      : '';
 
     const html = `<!doctype html>
 <html lang="pt-BR">
@@ -142,7 +145,7 @@ export class TranscriptService {
     </dl>
   </section>
   ${rendered}
-  <footer>Transcricao gerada em ${escapeHtml(formatDateTime(Date.now()))}.</footer>
+  <footer>Transcricao gerada em ${escapeHtml(formatDateTime(Date.now()))}.${credit}</footer>
 </main>
 </body>
 </html>`;

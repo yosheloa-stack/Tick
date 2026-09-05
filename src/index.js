@@ -1,3 +1,10 @@
+/**
+ * Tick - sistema de tickets para Discord.
+ *
+ * @author YoshGGx
+ * @license MIT
+ */
+
 import process from 'node:process';
 import { TicketBot } from './core/TicketBot.js';
 import { logger } from './core/logger.js';
