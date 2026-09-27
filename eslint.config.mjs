@@ -21,6 +21,6 @@ export default [
     },
   },
   {
-    ignores: ['node_modules/', 'data/', 'transcripts/'],
+    ignores: ['node_modules/', 'data/', 'transcripts/', '.claude/'],
   },
 ];
